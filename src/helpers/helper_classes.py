@@ -63,10 +63,10 @@ class KalmanFilter:
         result_dict = {key: "" for key in ["a_pred", "a_filter", "P", "v", "F", "K"]}
 
         # Initialization
-        a_pred = [np.zeros(shape=self.a_init.shape) for i in range(self.n + 1)]
+        # a_pred = np.array([np.zeros(shape=self.a_init.shape) for i in range(self.n + 1)])
+        a_pred = np.zeros(shape=(self.n+1, self.a_init.shape[0], self.a_init.shape[1]))
         a_pred[0] = self.a_init
-
-        a_filtered = [np.zeros(shape=self.a_init.shape) for i in range(self.n)]
+        a_filtered = np.array([np.zeros(shape=self.a_init.shape) for i in range(self.n)])
 
         P = [np.zeros(shape=self.P_init.shape) for i in range(self.n + 1)]
         P[0] = self.P_init
@@ -94,7 +94,7 @@ class KalmanFilter:
 
             # Kalman Gain
             if np.isnan(self.y[t]):
-                K[t] = np.zeros(shape=K[t - 1].shape)
+                K[t] = np.zeros(shape=(T[t].shape[0], Z[t].shape[0]))
             else:
                 K[t] = T[t] @ PZF1
 
@@ -108,7 +108,6 @@ class KalmanFilter:
                 + self.R[t] @ self.Q[t] @ self.R[t].T
                 - K[t] @ F[t] @ K[t].T
             )
-        print(np.array(a_pred).shape)
         
         result_dict["a_pred"] = np.array(a_pred).reshape(self.n + 1, len(a_pred[0]))
         result_dict["a_filter"] = np.array(a_filtered).reshape(
