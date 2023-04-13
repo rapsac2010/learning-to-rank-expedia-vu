@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 # Placeholder class
 class HelperClass:
     def __init__(self):
@@ -105,7 +108,8 @@ class KalmanFilter:
                 + self.R[t] @ self.Q[t] @ self.R[t].T
                 - K[t] @ F[t] @ K[t].T
             )
-
+        print(np.array(a_pred).shape)
+        
         result_dict["a_pred"] = np.array(a_pred).reshape(self.n + 1, len(a_pred[0]))
         result_dict["a_filter"] = np.array(a_filtered).reshape(
             self.n, len(a_filtered[0])
