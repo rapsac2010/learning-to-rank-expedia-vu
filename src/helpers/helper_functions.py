@@ -175,10 +175,15 @@ def imputation_linear(df_in, variable, verbose = 0):
         # df_mood.values to floats
         df_person['value'] = df_person['value'].astype(float)
 
+        time_df = df_person.copy()
+        time_df.index = time_df['time']
+        time_df['value'] = time_df['value'].interpolate(method='time', limit_direction='both')
         # Linear interpolate df nan values
-        df_person['imputed'] = df_person['value'].interpolate(method='linear', limit_direction='both')
-        df.iloc[idx_person, df.columns.get_loc('value')] = df_person['imputed']
+        time_df.index = df_person.index
+        df_person['smoothed'] = time_df['value']
+        df.iloc[idx_person, df.columns.get_loc('value')] = df_person['smoothed']
         comp_df_dict[person] = df_person
+        
     return df, comp_df_dict
 
 def impute_ARMA(df, variable, verbose = 0):
@@ -197,3 +202,33 @@ def impute_linear(df, variable, verbose = 0):
     df = create_NA(df, variable, verbose = verbose)
     df, compare_df = imputation_linear(df, variable, verbose = verbose)
     return df, compare_df
+
+def drop_partial_obs(df_in, threshold = 6):
+    df_cur = df_in.copy()
+    len_start = len(df_cur)
+
+    for person in tqdm(df_cur['id'].unique()):
+        df_person = df_cur[df_cur['id'] == person]
+        df_person = df_person.sort_values(by='time')
+
+        # initialize while loop over days
+        for direction in [1, -1]:
+            i = 0 if direction == 1 else -1
+            day = df_person['time'].dt.date.unique()[i]
+            n_variables = 0
+
+            # while loop over days
+            while n_variables < threshold:
+                df_day = df_person[df_person['time'].dt.date == day]
+                n_variables = len(df_day['variable'].unique())
+
+                if n_variables < threshold:
+                    # Drop observations for this day
+                    df_cur.drop(df_day.index, axis=0, inplace=True)
+
+                i += direction
+                day = df_person['time'].dt.date.unique()[i]
+
+    len_end = len(df_cur)
+    print(f"Removed {len_start - len_end} observations")
+    return df_cur
