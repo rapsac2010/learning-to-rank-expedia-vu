@@ -1,0 +1,4 @@
+"settings": {
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "jupyter.notebookFileRoot": "${workspaceFolder}"
+}
