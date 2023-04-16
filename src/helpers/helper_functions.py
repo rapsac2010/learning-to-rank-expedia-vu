@@ -5,6 +5,18 @@ import pandas as pd
 import numpy as np
 import numpy as np
 import pmdarima as pm
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+import optuna
+from optuna import Trial
+
 
 # Placeholder function
 def test():
@@ -232,3 +244,86 @@ def drop_partial_obs(df_in, threshold = 6):
     len_end = len(df_cur)
     print(f"Removed {len_start - len_end} observations")
     return df_cur
+
+
+def find_split_ts(df, split_ratios, date_colname='time', plot_data=False):
+    split_points = np.cumsum(split_ratios) * 100
+    dates = df[date_colname].unique()
+    dates.sort()
+    x = []
+    y = []
+    for date in dates:
+        x.append(date)
+        y.append(len(df[df[date_colname] <= date]) / len(df) * 100)
+
+    if plot_data:
+        plt.figure(figsize=(5, 3))
+        for split in split_points:
+            plt.axhline(split, color='r', linestyle='--')
+        plt.title(f'Cumulative distribution of data. Splits at {split_points}%')
+        plt.plot(x, y)
+
+    split_dates = []
+    for split in split_points:
+        for i in range(len(x)):
+            if y[i] >= split:
+                split_dates.append(x[i])
+                break
+
+    return split_dates
+
+def train_test_ts(X, y, test_size = 0.2):
+    # Find split date
+    split_date = find_split_ts(X, test_size)
+    
+    # Split data
+    X_train, X_test = X[X['time'] < split_date], X[X['time'] >= split_date]
+    y_train, y_test = y[X['time'] < split_date], y[X['time'] >= split_date]
+    
+    # Drop time column
+    X_train, X_test = X_train.drop('time', axis = 1), X_test.drop('time', axis = 1)
+    
+    return X_train, X_test, y_train, y_test
+
+import numpy as np
+
+
+def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2)):
+    # Find split dates
+    train_split, val_split = find_split_ts(X, split_ratios)
+
+    # Split data
+    X_train, X_val, X_test = X[X['time'] < train_split], X[(X['time'] >= train_split) & (X['time'] < val_split)], X[X['time'] >= val_split]
+    y_train, y_val, y_test = y[X['time'] < train_split], y[(X['time'] >= train_split) & (X['time'] < val_split)], y[X['time'] >= val_split]
+
+    # Drop time column
+    X_train, X_val, X_test = X_train.drop('time', axis=1), X_val.drop('time', axis=1), X_test.drop('time', axis=1)
+
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+def get_best_pipeline(best_trial, X_train):
+    classifier_name = best_trial.params['classifier']
+
+    preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), list(X_train.columns))
+    ])
+
+    if classifier_name == 'RandomForest':
+        classifier_obj = RandomForestClassifier(n_estimators=best_trial.params['n_estimators'], max_depth=best_trial.params['max_depth'])
+    elif classifier_name == 'GradientBoosting':
+        classifier_obj = GradientBoostingClassifier(n_estimators=best_trial.params['n_estimators'], learning_rate=best_trial.params['learning_rate'], max_depth=best_trial.params['max_depth'])
+    elif classifier_name == 'NaiveBayes':
+        classifier_obj = GaussianNB()
+    elif classifier_name == 'SVC':
+        classifier_obj = SVC(C=best_trial.params['C'], kernel=best_trial.params['kernel'], decision_function_shape='ovr')
+    else:  # KNN
+        classifier_obj = KNeighborsClassifier(n_neighbors=best_trial.params['n_neighbors'])
+
+    pipeline = Pipeline([
+        ('preprocessor', preprocessor),
+        ('classifier', classifier_obj)
+    ])
+
+    return pipeline
+
