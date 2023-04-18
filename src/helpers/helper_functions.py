@@ -288,7 +288,7 @@ def train_test_ts(X, y, test_size = 0.2):
 import numpy as np
 
 
-def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2)):
+def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2), drop_time=True):
     # Find split dates
     train_split, val_split = find_split_ts(X, split_ratios)
 
@@ -297,7 +297,8 @@ def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2)):
     y_train, y_val, y_test = y[X['time'] < train_split], y[(X['time'] >= train_split) & (X['time'] < val_split)], y[X['time'] >= val_split]
 
     # Drop time column
-    X_train, X_val, X_test = X_train.drop('time', axis=1), X_val.drop('time', axis=1), X_test.drop('time', axis=1)
+    if drop_time:
+        X_train, X_val, X_test = X_train.drop('time', axis=1), X_val.drop('time', axis=1), X_test.drop('time', axis=1)
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
