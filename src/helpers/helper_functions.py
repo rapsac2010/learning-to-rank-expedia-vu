@@ -256,12 +256,7 @@ def find_split_ts(df, split_ratios, date_colname='time', plot_data=False):
         x.append(date)
         y.append(len(df[df[date_colname] <= date]) / len(df) * 100)
 
-    if plot_data:
-        plt.figure(figsize=(5, 3))
-        for split in split_points:
-            plt.axhline(split, color='r', linestyle='--')
-        plt.title(f'Cumulative distribution of data. Splits at {split_points}%')
-        plt.plot(x, y)
+
 
     split_dates = []
     for split in split_points:
@@ -269,6 +264,14 @@ def find_split_ts(df, split_ratios, date_colname='time', plot_data=False):
             if y[i] >= split:
                 split_dates.append(x[i])
                 break
+
+    if plot_data:
+        plt.figure(figsize=(5, 3))
+        for split, split_date in zip(split_points, split_dates):
+            plt.axhline(split, linestyle='--')
+            plt.axvline(split_date)
+        plt.title(f'Cumulative distribution of data. Splits at {split_points}%')
+        plt.plot(x, y)
 
     return split_dates
 
@@ -328,3 +331,7 @@ def get_best_pipeline(best_trial, X_train):
 
     return pipeline
 
+# Count number of days for each person and print
+def count_days(df):
+    for person in df['id'].unique():
+        print(f"Person {person} has { len( df[df['id'] == person] )} days")
