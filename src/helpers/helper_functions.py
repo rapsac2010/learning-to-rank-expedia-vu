@@ -256,12 +256,7 @@ def find_split_ts(df, split_ratios, date_colname='time', plot_data=False):
         x.append(date)
         y.append(len(df[df[date_colname] <= date]) / len(df) * 100)
 
-    if plot_data:
-        plt.figure(figsize=(5, 3))
-        for split in split_points:
-            plt.axhline(split, color='r', linestyle='--')
-        plt.title(f'Cumulative distribution of data. Splits at {split_points}%')
-        plt.plot(x, y)
+
 
     split_dates = []
     for split in split_points:
@@ -269,6 +264,14 @@ def find_split_ts(df, split_ratios, date_colname='time', plot_data=False):
             if y[i] >= split:
                 split_dates.append(x[i])
                 break
+
+    if plot_data:
+        plt.figure(figsize=(5, 3))
+        for split, split_date in zip(split_points, split_dates):
+            plt.axhline(split, linestyle='--')
+            plt.axvline(split_date)
+        plt.title(f'Cumulative distribution of data. Splits at {split_points}%')
+        plt.plot(x, y)
 
     return split_dates
 
@@ -288,7 +291,7 @@ def train_test_ts(X, y, test_size = 0.2):
 import numpy as np
 
 
-def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2)):
+def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2), drop_time=True):
     # Find split dates
     train_split, val_split = find_split_ts(X, split_ratios)
 
@@ -297,7 +300,8 @@ def train_val_test_ts(X, y, split_ratios=(0.6, 0.2, 0.2)):
     y_train, y_val, y_test = y[X['time'] < train_split], y[(X['time'] >= train_split) & (X['time'] < val_split)], y[X['time'] >= val_split]
 
     # Drop time column
-    X_train, X_val, X_test = X_train.drop('time', axis=1), X_val.drop('time', axis=1), X_test.drop('time', axis=1)
+    if drop_time:
+        X_train, X_val, X_test = X_train.drop('time', axis=1), X_val.drop('time', axis=1), X_test.drop('time', axis=1)
 
     return X_train, X_val, X_test, y_train, y_val, y_test
 
@@ -327,3 +331,7 @@ def get_best_pipeline(best_trial, X_train):
 
     return pipeline
 
+# Count number of days for each person and print
+def count_days(df):
+    for person in df['id'].unique():
+        print(f"Person {person} has { len( df[df['id'] == person] )} days")
