@@ -16,6 +16,10 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 import optuna
 from optuna import Trial
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization
+
 
 
 # Placeholder function
@@ -332,6 +336,60 @@ def get_best_pipeline(best_trial, X_train):
     return pipeline
 
 # Count number of days for each person and print
-def count_days(df):
-    for person in df['id'].unique():
-        print(f"Person {person} has { len( df[df['id'] == person] )} days")
+def count_days(df, id_name = 'id'):
+    for person in df[id_name].unique():
+        print(f"Person {person} has { len( df[df[id_name] == person] )} days")
+
+def shape_lstm(X, y, seq_length, return_naive = False):
+    import numpy as np
+
+    X_lstm = []
+    y_lstm = []
+    naive_pred = []
+    
+    # Iterate over persons:
+    for person in X['remainder__id'].unique():
+        # Get all days for this person
+        X_person = X[X['remainder__id'] == person].drop(columns = ['remainder__id']).values
+        y_person = y[X['remainder__id'] == person].drop(columns = ['remainder__id']).values
+
+        i = 0
+        while i < len(X_person):
+            # If days are less than seq_length, pad with zeros at the beginning of X
+            if len(X_person) < seq_length:
+                n_missing = seq_length - len(X_person)
+                X_padded = np.pad(X_person, ((n_missing, 0), (0, 0)), mode='constant', constant_values=0)
+                X_lstm.append(X_padded)
+                y_lstm.append(y_person[-1])
+                naive_pred.append(y_person[-2])
+                break
+
+            # If days are more than seq_length, create sequences of seq_length days
+            elif i + seq_length <= len(X_person):
+                X_lstm.append(X_person[i:i+seq_length])
+                y_lstm.append(y_person[i+seq_length-1])
+                naive_pred.append(y_person[i+seq_length-2])
+                i += 1
+
+            # If the remaining days are not enough to form a full sequence, stop iterating
+            else:
+                break
+                
+        # Add sequenced data for this person to the list of all sequences
+
+    # Convert lists to numpy arrays and reshape y_lstm
+    X_lstm = np.array(X_lstm).astype('float32'	)
+    y_lstm = np.array(y_lstm).reshape(-1, 1).astype('float32')
+
+    if return_naive:
+        return X_lstm, y_lstm, naive_pred
+    return X_lstm, y_lstm
+
+
+# Define the LSTM model
+def build_lstm_model_regression(input_shape, hunits = 64):
+    model = Sequential()
+    model.add(LSTM(hunits, input_shape=input_shape, return_sequences=False))
+    model.add(Dense(1, activation='linear'))
+
+    return model
