@@ -119,6 +119,7 @@ venv.bak/
 
 # mkdocs documentation
 /site
+data/training_set.csv
 
 # mypy
 .mypy_cache/
