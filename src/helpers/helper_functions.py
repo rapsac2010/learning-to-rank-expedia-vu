@@ -8,6 +8,12 @@ from sklearn.metrics import accuracy_score
 import optuna
 from optuna import Trial
 from sklearn.model_selection import GroupShuffleSplit
+import scienceplots
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.style.use(['science', 'ieee']) 
+plt.rcParams['figure.dpi'] = 100
+
 
 def train_test_split(df, target_str, test_size=.2):
     splitter = GroupShuffleSplit(test_size=test_size, n_splits=2, random_state = 7)
@@ -109,3 +115,47 @@ def merge_and_drop(df, desire_df_click, desire_df_book, drop = True):
     df['desire_booking_bool'].fillna(0, inplace=True)
     df['desire_click_bool'].fillna(0, inplace=True)
     return df
+
+def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, figsize=(8,6), alternative_labels=None, rotate_labels=False, title = None, savename = None):
+    """
+    Plots a correlation heatmap of a pandas DataFrame.
+
+    :param df: pandas DataFrame
+    :param include_columns: list of columns to include, default None (includes all columns)
+    :param exclude_columns: list of columns to exclude, default None (excludes no columns)
+    :param alternative_labels: list of alternative labels, default None (uses original column names)
+    """
+    if include_columns is not None:
+        # Filter DataFrame to only include specified columns
+        df = df[include_columns]
+    elif exclude_columns is not None:
+        # Filter DataFrame to exclude specified columns
+        df = df.drop(columns=exclude_columns)
+    
+    # Calculate the correlation matrix
+    corr_matrix = df.corr()
+    # round to 2 decimals
+    corr_matrix = corr_matrix.round(2)
+
+    # Set alternative labels if provided
+    if alternative_labels is not None:
+        if len(include_columns) != len(alternative_labels):
+            raise ValueError("Length of include_columns and alternative_labels must be equal")
+        corr_matrix.columns = alternative_labels
+        corr_matrix.index = alternative_labels
+
+    # Create a heatmap using seaborn
+    plt.figure(figsize=figsize)
+
+
+    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+    if title is not None:
+        plt.title(title)
+
+    if rotate_labels:
+        # Rotate x labels
+        plt.xticks(rotation=45, ha='right')
+        plt.yticks(rotation=0)
+    if savename is not None:
+        plt.savefig(savename, bbox_inches='tight')
+    plt.show()
