@@ -17,7 +17,6 @@ os.chdir(config['PATH']['ROOT_DIR'])
 # # Load data
 df = pd.read_parquet(config['PATH']['INT_DIR'] + '/training_set_preprocessed_nodrop.parquet', engine = 'fastparquet')
 df_test = pd.read_parquet(config['PATH']['INT_DIR'] + '/test_set_preprocessed_nodrop.parquet', engine = 'fastparquet')
-df = df[df['srch_id'] < 10000]
 
 import optuna
 import lightgbm as lgb
@@ -29,7 +28,7 @@ def objective(trial):
         "metric":"ndcg",
     }
     params_lgbm = {
-        'n_estimators': trial.suggest_int('n_estimators', 10, 30), 
+        'n_estimators': trial.suggest_int('n_estimators', 100, 900), 
         'max_depth': trial.suggest_int('max_depth', 1, 20), 
         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1), 
         'subsample': trial.suggest_float('subsample', 0.4, 0.7), 
@@ -54,7 +53,7 @@ def objective(trial):
     X_test_lgb = X_test.drop(['srch_id'], axis=1)
 
     params_all = {**params_lgbm, **params_other}
-    wandb.init(project='DMT-2023', group = 'optuna_vardesire_size', config = params_all, reinit = True, allow_val_change=True)
+    wandb.init(project='DMT-2023', group = 'optuna_vardesire_size_desktop', config = params_all, reinit = True, allow_val_change=True)
     cb = wandb_callback()
     ranker = lgb.LGBMRanker(**{**params_static, **params_lgbm})
 
@@ -85,13 +84,13 @@ def objective(trial):
 
 
 # Create a study object and optimize the objective function.
-study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=2)
+study = optuna.create_study(study_name='example-study', storage='study.db', load_if_exists=True, direction='maximize')
+study.optimize(objective, n_trials=200)
 wandb.finish()
 # Extract the best hyperparameters
 best_params = study.best_params
 print(f'Best hyperparameters: {best_params}')
 
 # Save best params to txt file
-with open(config['PATH']['INT_DIR'] + '/optuna_best_params.txt', 'w') as f:
+with open(config['PATH']['INT_DIR'] + '/optuna_best_params_desktop.txt', 'w') as f:
     f.write(str(best_params))
