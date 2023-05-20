@@ -107,13 +107,15 @@ def construct_desire(df, subject = 'prop_id', target = 'click_bool'):
     df = df.merge(desire_df, on=subject, how='left')
     return df, desire_df
 
-def merge_and_drop(df, desire_df_click, desire_df_book, drop = True):
-    df = df.merge(desire_df_click, on='prop_id', how='left')
-    df = df.merge(desire_df_book, on='prop_id', how='left')
+def merge_and_drop(df, df_on_list, drop = True):
+
+    # iterate over tuple list
+    for df_cur, key in df_on_list:
+        df = df.merge(df_cur, on=key, how='left')
     if drop:
         df.drop(['click_bool', 'booking_bool'], axis=1, inplace=True)
-    df['desire_booking_bool'].fillna(0, inplace=True)
-    df['desire_click_bool'].fillna(0, inplace=True)
+    
+    df = df.fillna(-1)
     return df
 
 def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, figsize=(8,6), alternative_labels=None, rotate_labels=False, title = None, savename = None):

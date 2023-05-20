@@ -119,6 +119,11 @@ for feature in tqdm(rank_features):
 for df_cur in [df, df_test]:
     df_cur['usd_diff'] = abs(df_cur['visitor_hist_adr_usd'] - df_cur['price_usd'])
     df_cur['star_diff'] = abs(df_cur['visitor_hist_starrating'] - df_cur['prop_starrating'])
+    df_cur['log_price_diff'] = df_cur['prop_log_historical_price'] - np.log(df_cur['price_usd'])
+
+# Fill distance nan with mean
+df['orig_destination_distance'].fillna(df['orig_destination_distance'].mean(), inplace=True)
+df_test['orig_destination_distance'].fillna(df_test['orig_destination_distance'].mean(), inplace=True)
 
 # Fill missing values with -1
 df = df.fillna(-1)
