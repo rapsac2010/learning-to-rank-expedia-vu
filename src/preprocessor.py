@@ -29,6 +29,8 @@ def construct_datetime(df):
     df_out['month'] = df_out['date_time'].dt.month
     df_out['day'] = df_out['date_time'].dt.day
     df_out['hour'] = df_out['date_time'].dt.hour
+    df_out['day_of_week'] = df_out['date_time'].dt.weekday
+    df_out['is_weekend'] = df_out['date_time'].dt.weekday.isin([5,6]).astype(int)
     return df_out
 
 def drop_missing_cols_thresholded(df, threshold = 0.8):

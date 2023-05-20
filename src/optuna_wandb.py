@@ -28,7 +28,7 @@ def objective(trial):
         "metric":"ndcg",
     }
     params_lgbm = {
-        'n_estimators': trial.suggest_int('n_estimators', 100, 900), 
+        'n_estimators': trial.suggest_int('n_estimators', 250, 900), 
         'max_depth': trial.suggest_int('max_depth', 1, 20), 
         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1), 
         'subsample': trial.suggest_float('subsample', 0.4, 0.7), 
@@ -37,7 +37,7 @@ def objective(trial):
         'reg_lambda': trial.suggest_float('reg_lambda', 0.001, 0.2),
     }
     params_other = {
-        'val_size': trial.suggest_float('val_size', 0.05, 0.8)
+        'val_size': trial.suggest_float('val_size', 0.3, 0.8)
     }
 
     X_train, X_val, X_test, y_train, y_val, y_test, test_ideal = train_val_test_split(df, 'target', test_size=.15, val_size=params_other['val_size'], random_state=7)
@@ -84,13 +84,20 @@ def objective(trial):
 
 
 # Create a study object and optimize the objective function.
-study = optuna.create_study(study_name='example-study', storage='study.db', load_if_exists=True, direction='maximize')
-study.optimize(objective, n_trials=200)
+study = optuna.create_study(study_name='dmt_19_5', direction='maximize')
+study.optimize(objective, n_trials=120)
+
+
 wandb.finish()
 # Extract the best hyperparameters
 best_params = study.best_params
 print(f'Best hyperparameters: {best_params}')
 
 # Save best params to txt file
-with open(config['PATH']['INT_DIR'] + '/optuna_best_params_desktop.txt', 'w') as f:
+with open(config['PATH']['INT_DIR'] + '/optuna_best_params_desktop_19_5.txt', 'w') as f:
     f.write(str(best_params))
+
+# save study
+import pickle
+with open(config['PATH']['INT_DIR'] + '/optuna_study_desktop_19_5.pkl', 'wb') as f:
+    pickle.dump(study, f)
