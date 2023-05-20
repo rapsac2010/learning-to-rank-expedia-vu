@@ -31,11 +31,11 @@ def objective(trial):
         'n_estimators': trial.suggest_int('n_estimators', 250, 900), 
         'num_leaves': trial.suggest_int('num_leaves', 10, 100),
         'max_depth': trial.suggest_int('max_depth', 1, 20), 
-        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1), 
-        'subsample': trial.suggest_float('subsample', 0.4, 0.7), 
-        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.4, 0.7), 
-        'reg_alpha': trial.suggest_float('reg_alpha', 0.001, 0.2), 
-        'reg_lambda': trial.suggest_float('reg_lambda', 0.001, 0.2),
+        'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.2), 
+        'subsample': trial.suggest_float('subsample', 0.4, 1), 
+        'colsample_bytree': trial.suggest_float('colsample_bytree', 0.4, 1), 
+        'reg_alpha': trial.suggest_float('reg_alpha', 0, 0.2), 
+        'reg_lambda': trial.suggest_float('reg_lambda', 0, 0.2),
         'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
         'min_child_weight': trial.suggest_float('min_child_weight', 0.0001, 0.1),
         }
@@ -105,10 +105,10 @@ best_params = study.best_params
 print(f'Best hyperparameters: {best_params}')
 
 # Save best params to txt file
-with open(config['PATH']['INT_DIR'] + '/optuna_best_params_desktop_19_5.txt', 'w') as f:
+with open(config['PATH']['INT_DIR'] + '/optuna_best_params_20_5_more_params.txt', 'w') as f:
     f.write(str(best_params))
 
 # save study
 import pickle
-with open(config['PATH']['INT_DIR'] + '/optuna_study_desktop_19_5.pkl', 'wb') as f:
+with open(config['PATH']['INT_DIR'] + '/optuna_best_params_20_5_more_params.pkl', 'wb') as f:
     pickle.dump(study, f)
