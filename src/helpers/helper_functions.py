@@ -112,6 +112,7 @@ def merge_and_drop(df, df_on_list, drop = True):
     # iterate over tuple list
     for df_cur, key in df_on_list:
         df = df.merge(df_cur, on=key, how='left')
+        
     if drop:
         df.drop(['click_bool', 'booking_bool'], axis=1, inplace=True)
     

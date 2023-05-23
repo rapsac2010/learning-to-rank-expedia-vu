@@ -15,8 +15,14 @@ config.read('src/config.ini')
 os.chdir(config['PATH']['ROOT_DIR'])
 
 # # Load data
-df = pd.read_parquet(config['PATH']['INT_DIR'] + '/training_set_preprocessed_nodrop.parquet', engine = 'fastparquet')
-df_test = pd.read_parquet(config['PATH']['INT_DIR'] + '/test_set_preprocessed_nodrop.parquet', engine = 'fastparquet')
+df = pd.read_parquet(config['PATH']['INT_DIR'] + '/training_set_preprocessed_nodrop.parquet', engine = 'auto')
+df_test = pd.read_parquet(config['PATH']['INT_DIR'] + '/test_set_preprocessed_nodrop.parquet', engine = 'auto')
+
+categorical_features = ['hour', 'day', 'month', 'day_of_week', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id', 'srch_destination_id']
+
+for c in categorical_features:
+    df[c] = df[c].astype('category')
+    df_test[c] = df_test[c].astype('category')
 
 import optuna
 import lightgbm as lgb
@@ -50,8 +56,12 @@ def objective(trial):
 
     prop_counts = X_val['prop_id'].value_counts()
     prop_counts.name = 'prop_counts'
+    prop_counts = pd.DataFrame({'prop_id':prop_counts.index, 'count':prop_counts.values})
+
     srch_dest_counts = X_val['srch_destination_id'].value_counts()
     srch_dest_counts.name = 'srch_dest_counts'
+    srch_dest_counts = pd.DataFrame({'srch_destination_id':srch_dest_counts.index, 'count':srch_dest_counts.values})
+
     merge_df_list = [(desire_df_click, 'prop_id'), (desire_df_book, 'prop_id'), (prop_counts, 'prop_id'), (srch_dest_counts, 'srch_destination_id')]   
 
     X_train = merge_and_drop(X_train, merge_df_list)
@@ -64,7 +74,7 @@ def objective(trial):
     X_test_lgb = X_test.drop(['srch_id'], axis=1)
 
     params_all = {**params_lgbm, **params_other}
-    wandb.init(project='DMT-2023', group = 'optuna_moreparams_20_5', config = params_all, reinit = True, allow_val_change=True)
+    wandb.init(project='DMT-2023', group = 'optuna_categorical', config = params_all, reinit = True, allow_val_change=True)
     cb = wandb_callback()
     ranker = lgb.LGBMRanker(**{**params_static, **params_lgbm})
 
@@ -75,8 +85,12 @@ def objective(trial):
         eval_set=[(X_train_lgb, y_train),(X_test_lgb, y_test)],
         eval_group=[group_train, group_val],
         eval_at=[5],
-        callbacks=[cb]
+        callbacks=[cb],
+        feature_name='auto', 
+        categorical_feature = 'auto'
     )
+    for c in categorical_features:
+        X_test_lgb[c] = X_test_lgb[c].astype('category')
 
     y_pred = ranker.predict(X_test_lgb)
     df_res = X_test.copy()
@@ -95,7 +109,7 @@ def objective(trial):
 
 
 # Create a study object and optimize the objective function.
-study = optuna.create_study(study_name='dmt_19_5', direction='maximize')
+study = optuna.create_study(study_name='dmt_22_5', direction='maximize')
 study.optimize(objective, n_trials=120)
 
 
@@ -105,10 +119,10 @@ best_params = study.best_params
 print(f'Best hyperparameters: {best_params}')
 
 # Save best params to txt file
-with open(config['PATH']['INT_DIR'] + '/optuna_best_params_20_5_more_params.txt', 'w') as f:
+with open(config['PATH']['INT_DIR'] + '/optuna_best_params_22_5.txt', 'w') as f:
     f.write(str(best_params))
 
 # save study
 import pickle
-with open(config['PATH']['INT_DIR'] + '/optuna_best_params_20_5_more_params.pkl', 'wb') as f:
+with open(config['PATH']['INT_DIR'] + '/optuna_best_params_22_5.pkl', 'wb') as f:
     pickle.dump(study, f)
