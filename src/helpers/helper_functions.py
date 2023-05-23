@@ -111,14 +111,17 @@ def merge_and_drop(df, df_on_list, drop = True):
 
     # iterate over tuple list
     for df_cur, key in df_on_list:
-        df = df.merge(df_cur, on=key, how='left')
+        df = df.merge(df_cur, on=key, how='left', )
     if drop:
         df.drop(['click_bool', 'booking_bool'], axis=1, inplace=True)
     
     df = df.fillna(-1)
     return df
 
-def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, figsize=(8,6), alternative_labels=None, rotate_labels=False, title = None, savename = None):
+import scipy.stats as stats
+def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, figsize=(8,6), 
+                             alternative_labels=None, rotate_labels=False, 
+                             title=None, savename=None, show_significance=False):
     """
     Plots a correlation heatmap of a pandas DataFrame.
 
@@ -126,6 +129,7 @@ def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, fig
     :param include_columns: list of columns to include, default None (includes all columns)
     :param exclude_columns: list of columns to exclude, default None (excludes no columns)
     :param alternative_labels: list of alternative labels, default None (uses original column names)
+    :param show_significance: bool, default False, shows significance level on heatmap
     """
     if include_columns is not None:
         # Filter DataFrame to only include specified columns
@@ -139,6 +143,13 @@ def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, fig
     # round to 2 decimals
     corr_matrix = corr_matrix.round(2)
 
+    if show_significance:
+        p_matrix = df.corr(method=lambda x, y: stats.pearsonr(x, y)[1]) - np.eye(*corr_matrix.shape)
+        p_matrix = p_matrix.applymap(lambda x: ''.join(['*' for t in [0.01, 0.05, 0.1] if x<=t]))
+        annot_matrix = corr_matrix.astype(str) + p_matrix
+    else:
+        annot_matrix = corr_matrix.astype(str)
+
     # Set alternative labels if provided
     if alternative_labels is not None:
         if len(include_columns) != len(alternative_labels):
@@ -148,9 +159,8 @@ def plot_correlation_heatmap(df, include_columns=None, exclude_columns=None, fig
 
     # Create a heatmap using seaborn
     plt.figure(figsize=figsize)
-
-
-    sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
+    sns.heatmap(corr_matrix, annot=annot_matrix, fmt='', cmap='coolwarm', vmin=-1, vmax=1)
+    
     if title is not None:
         plt.title(title)
 

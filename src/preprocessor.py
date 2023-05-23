@@ -84,8 +84,8 @@ config.read('src/config.ini')
 
 # Read dataframes from parquet
 print('Loading data...')
-df = pd.read_parquet(config['PATH']['DATA_DIR'] + '/training_set.parquet', engine = 'fastparquet')
-df_test = pd.read_parquet(config['PATH']['DATA_DIR'] + '/test_set.parquet', engine = 'fastparquet')
+df = pd.read_parquet(config['PATH']['DATA_DIR'] + '/training_set.parquet', engine = 'auto')
+df_test = pd.read_parquet(config['PATH']['DATA_DIR'] + '/test_set.parquet', engine = 'auto')
 
 # Construct target for training set
 print('Preprocessing...')
@@ -103,31 +103,36 @@ df_test = drop_cols(df_test, missing_cols)
 
 # Add normalized columns
 columns = ['price_usd', 'prop_starrating', 'prop_review_score', 'prop_location_score1', 'prop_location_score2']
-indices = ['srch_id', 'prop_id', 'prop_country_id', 'srch_destination_id', 'srch_length_of_stay', 'srch_booking_window']
+indices = ['srch_id', 'prop_id', 'prop_country_id', 'srch_destination_id', 'srch_length_of_stay', 'srch_booking_window', 'month']
 for column in tqdm(columns):
     for index in indices:
         df = add_normalized_column(df, column, index)
         df_test = add_normalized_column(df_test, column, index)
 
+# difference features
+for df_cur in [df, df_test]:
+    df_cur['usd_diff'] = df_cur['visitor_hist_adr_usd'] - df_cur['price_usd']
+    df_cur['star_diff'] = df_cur['visitor_hist_starrating'] - df_cur['prop_starrating']
+    df_cur['log_price_diff'] = df_cur['prop_log_historical_price'] - np.log(df_cur['price_usd'])
+
+# count variables 
+# theory: A property that is in more searches is purchased more often.
+for df_cur in [df, df_test]:
+    df_cur['prop_id_count'] = df_cur.groupby('prop_id')['prop_id'].transform('count')
+
 # Add rank features
-rank_features = ['price_usd', 'prop_starrating', 'prop_review_score', 'prop_location_score1', 'prop_location_score2']
+rank_features = ['log_price_diff', 'price_usd', 'prop_starrating', 'prop_review_score', 'prop_location_score1', 'prop_location_score2']
 for feature in tqdm(rank_features):
     df = create_rank_feature(df, feature)
     df_test = create_rank_feature(df_test, feature)
-
-# difference features
-for df_cur in [df, df_test]:
-    df_cur['usd_diff'] = abs(df_cur['visitor_hist_adr_usd'] - df_cur['price_usd'])
-    df_cur['star_diff'] = abs(df_cur['visitor_hist_starrating'] - df_cur['prop_starrating'])
-    df_cur['log_price_diff'] = df_cur['prop_log_historical_price'] - np.log(df_cur['price_usd'])
 
 # Fill distance nan with mean
 df['orig_destination_distance'].fillna(df['orig_destination_distance'].mean(), inplace=True)
 df_test['orig_destination_distance'].fillna(df_test['orig_destination_distance'].mean(), inplace=True)
 
 # Fill missing values with -1
-df = df.fillna(-1)
-df_test = df_test.fillna(-1)
+df = df.fillna(0)
+df_test = df_test.fillna(0)
 
 # Fill inf values with -1
 # df = df.replace([np.inf, -np.inf], -1)
