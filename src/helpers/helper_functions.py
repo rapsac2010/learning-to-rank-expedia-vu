@@ -115,7 +115,7 @@ def merge_and_drop(df, df_on_list, drop = True):
     if drop:
         df.drop(['click_bool', 'booking_bool'], axis=1, inplace=True)
     
-    df = df.fillna(-1)
+    # df = df.fillna(-1)
     return df
 
 import scipy.stats as stats
