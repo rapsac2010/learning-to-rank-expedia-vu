@@ -87,8 +87,9 @@ def calc_NDCG(df_ideal, df_pred, k = 5):
     df_ideal = df_ideal.groupby('srch_id').head(k)
     df_pred = df_pred.groupby('srch_id').head(k)
 
-    assert df_ideal.shape[0] % k == 0
-    assert df_pred.shape[0] % k == 0
+    assert df_ideal.shape[0] % k == 0, 'Number of rows in ideal is not a multiple of k'
+    assert df_pred.shape[0] % k == 0, 'Number of rows in pred is not a multiple of k'
+    assert df_ideal.shape[0] == df_pred.shape[0], 'Number of rows in ideal and pred are not equal'
     
     # Get grades matrices
     ideal_grades = df_ideal['target'].values.reshape(int(df_ideal.shape[0] / k), k)
